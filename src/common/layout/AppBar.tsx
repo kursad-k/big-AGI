@@ -145,7 +145,8 @@ export function AppBar(props: { sx?: SxProps }) {
       <DialogTitle>Temp menu</DialogTitle>
       {/*<DialogContent>*/}
         <List>
-          {drawerItems}
+          {/* FIXME!!! */}
+          {/*{drawerItems}*/}
         </List>
       {/*</DialogContent>*/}
     </Drawer>}

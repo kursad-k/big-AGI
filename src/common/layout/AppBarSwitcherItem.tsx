@@ -27,7 +27,7 @@ const AppRouteMap: { [key in ContainedAppType]: { name: string, route: string } 
   // },
   'news': {
     name: 'News',
-    route: '/news',
+    route: '/pages/news',
   },
 };
 

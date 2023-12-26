@@ -12,7 +12,7 @@ import type { DConversationId } from '~/common/state/store-chats';
 export const ROUTE_INDEX = '/';
 export const ROUTE_APP_CHAT = '/';
 export const ROUTE_APP_LINK_CHAT = '/link/chat/:linkId';
-export const ROUTE_APP_NEWS = '/news';
+export const ROUTE_APP_NEWS = '/pages/news';
 
 export const getIndexLink = () => ROUTE_INDEX;
 

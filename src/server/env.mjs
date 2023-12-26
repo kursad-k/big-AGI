@@ -59,6 +59,8 @@ export const env = createEnv({
     throw new Error('Invalid environment variable');
   },
 
+  emptyStringAsUndefined: true,
+
   // with Noext.JS >= 13.4.4 we'd only need to destructure client variables
   experimental__runtimeEnv: {},
 });
