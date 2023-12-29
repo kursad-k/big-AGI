@@ -36,6 +36,12 @@ import { useOptimaLayout } from '~/common/layout/optima/useOptimaLayout';
 import { useUIPreferencesStore } from '~/common/state/store-ui';
 import { useUXLabsStore } from '~/common/state/store-ux-labs';
 
+import type { ActileProvider } from './actile/ActileProvider';
+import { PopperMenu } from './actile/PopperMenu';
+import { actileProviderAttachReference } from './actile/actileProviderAttachReference';
+import { actileProviderCommands } from './actile/actileProviderCommands';
+import { useActileManager } from './actile/useActileManager';
+
 import type { AttachmentId } from './attachments/store-attachments';
 import { Attachments } from './attachments/Attachments';
 import { getTextBlockText, useLLMAttachments } from './attachments/useLLMAttachments';
@@ -87,6 +93,7 @@ export function Composer(props: {
   const [speechInterimResult, setSpeechInterimResult] = React.useState<SpeechResult | null>(null);
   const [isDragging, setIsDragging] = React.useState(false);
   const [chatModeMenuAnchor, setChatModeMenuAnchor] = React.useState<HTMLAnchorElement | null>(null);
+  const [poppersMenuAnchor, setPoppersMenuAnchor] = React.useState<HTMLElement | null>(null);
 
   // external state
   const isMobile = useIsMobile();
@@ -187,13 +194,54 @@ export function Composer(props: {
   };
 
 
-  // Text actions
+  // Mode menu
 
-  const handleTextAreaTextChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleModeSelectorHide = () => setChatModeMenuAnchor(null);
+
+  const handleModeSelectorShow = (event: React.MouseEvent<HTMLAnchorElement>) =>
+    setChatModeMenuAnchor(anchor => anchor ? null : event.currentTarget);
+
+  const handleModeChange = (_chatModeId: ChatModeId) => {
+    handleModeSelectorHide();
+    setChatModeId(_chatModeId);
+  };
+
+
+  // Ruled poppers
+
+  const actileProviders: ActileProvider[] = React.useMemo(() =>
+      [actileProviderAttachReference, actileProviderCommands]
+    , []);
+
+  const {
+    popupVisible,
+    popupItems,
+    checkForPopupTrigger,
+    handlePopupItemSelect,
+    closePopup,
+  } = useActileManager(actileProviders);
+
+
+  // Text typing
+
+  const handleTextareaTextChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setComposeText(e.target.value);
   }, [setComposeText]);
 
-  const handleTextareaKeyDown = React.useCallback((e: React.KeyboardEvent) => {
+  const handleTextareaKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Popup: handle keyboard navigation when active
+    if (popupVisible)
+      return;
+
+    // Popup: check for triggers on keypress
+    if (e.key === '/' || e.key === '@') {
+      const textSoFar = (e.currentTarget.value || '') + e.key;
+      const triggered = checkForPopupTrigger(textSoFar);
+      if (triggered)
+        setPoppersMenuAnchor(e.currentTarget);
+    }
+
+    // Enter: primary action
     if (e.key === 'Enter') {
 
       // Alt: append the message instead
@@ -209,20 +257,8 @@ export function Composer(props: {
         return e.preventDefault();
       }
     }
-  }, [assistantAbortible, chatModeId, composeText, enterIsNewline, handleSendAction]);
 
-
-  // Mode menu
-
-  const handleModeSelectorHide = () => setChatModeMenuAnchor(null);
-
-  const handleModeSelectorShow = (event: React.MouseEvent<HTMLAnchorElement>) =>
-    setChatModeMenuAnchor(anchor => anchor ? null : event.currentTarget);
-
-  const handleModeChange = (_chatModeId: ChatModeId) => {
-    handleModeSelectorHide();
-    setChatModeId(_chatModeId);
-  };
+  }, [assistantAbortible, chatModeId, checkForPopupTrigger, composeText, enterIsNewline, handleSendAction, popupVisible]);
 
 
   // Mic typing & continuation mode
@@ -453,7 +489,7 @@ export function Composer(props: {
                   minRows={5} maxRows={10}
                   placeholder={textPlaceholder}
                   value={composeText}
-                  onChange={handleTextAreaTextChange}
+                  onChange={handleTextareaTextChange}
                   onDragEnter={handleTextareaDragEnter}
                   onDragStart={handleTextareaDragStart}
                   onKeyDown={handleTextareaKeyDown}
@@ -658,6 +694,14 @@ export function Composer(props: {
             anchorEl={chatModeMenuAnchor} onClose={handleModeSelectorHide}
             chatModeId={chatModeId} onSetChatModeId={handleModeChange}
             capabilityHasTTI={props.capabilityHasT2I}
+          />
+        )}
+
+        {/* Poppers */}
+        {popupVisible && (
+          <PopperMenu
+            anchorEl={poppersMenuAnchor} onClose={closePopup}
+            popupItems={popupItems} onPopupItemSelect={handlePopupItemSelect}
           />
         )}
 
